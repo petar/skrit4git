@@ -3,7 +3,7 @@ module github.com/petar/twitter4git
 go 1.19
 
 require (
-	github.com/gov4git/lib4git v0.0.5
+	github.com/gov4git/lib4git v0.0.6-0.20230201033104-e76ae8f33e21
 	github.com/spf13/cobra v1.6.1
 )
 

@@ -11,6 +11,12 @@ import (
 	"github.com/gov4git/lib4git/ns"
 )
 
+type LocalID string // YYYYMMDD-HHMMSS-sha256:HASH
+
+func (x LocalID) String() string {
+	return string(x)
+}
+
 type HomeAddress git.Address
 
 var RootNS = ns.NS{}
@@ -24,13 +30,14 @@ const (
 	PostFilenameTimeFormat = "20060102-150405"
 )
 
-func PostNS(t time.Time, content string) ns.NS {
-	return ns.NS{PostDir, PostFilebase(t, content)}
+func PostNS(t time.Time, content string) (ns.NS, LocalID) {
+	localID := PostFilebase(t, content)
+	return RootNS.Join(ns.NS{PostDir, localID.String()}), localID
 }
 
 // PostFilebase returns a filename of the form YYYYMMDD-HHMMSS-sha256:HASH
-func PostFilebase(t time.Time, content string) string {
-	return t.UTC().Format(PostFilenameTimeFormat) + ContentHash(content)
+func PostFilebase(t time.Time, content string) LocalID {
+	return LocalID(t.UTC().Format(PostFilenameTimeFormat) + ContentHash(content))
 }
 
 func ContentHash(content string) string {
