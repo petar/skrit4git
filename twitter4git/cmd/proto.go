@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/gov4git/lib4git/git"
+	"github.com/gov4git/lib4git/must"
+	"github.com/petar/twitter4git/proto"
 )
 
 const (
@@ -14,14 +16,14 @@ const (
 )
 
 type Setup struct {
-	Repo git.Address
+	Home proto.Home
 }
 
 type Config struct {
-	RepoURL    git.URL    `json:"repo_url"`
-	RepoBranch git.Branch `json:"repo_branch"`
-	Auth       AuthConfig `json:"auth"`
-	VarDir     string     `json:"var_dir"`
+	PublicHomeURL  git.URL    `json:"public_home_url"`  // public URL of home repo
+	PrivateHomeURL git.URL    `json:"private_home_url"` // private URL of home repo
+	Auth           AuthConfig `json:"auth"`
+	VarDir         string     `json:"var_dir"`
 }
 
 type AuthConfig struct {
@@ -37,18 +39,24 @@ type UserPassword struct {
 
 func (cfg Config) Setup(ctx context.Context) Setup {
 
-	git.SetAuthor("twitter4git agent", "no-reply@twitter4git.xyz")
+	git.SetAuthor(proto.ProtocolName+" agent", "no-reply@"+proto.ProtocolName+".xyz")
 
 	switch {
 	case cfg.Auth.SSHPrivateKeysFile != nil:
-		git.SetAuth(ctx, cfg.RepoURL, git.MakeSSHFileAuth(ctx, "git", *cfg.Auth.SSHPrivateKeysFile))
+		git.SetAuth(ctx, cfg.PrivateHomeURL, git.MakeSSHFileAuth(ctx, "git", *cfg.Auth.SSHPrivateKeysFile))
 	case cfg.Auth.AccessToken != nil:
-		git.SetAuth(ctx, cfg.RepoURL, git.MakeTokenAuth(ctx, *cfg.Auth.AccessToken))
+		git.SetAuth(ctx, cfg.PrivateHomeURL, git.MakeTokenAuth(ctx, *cfg.Auth.AccessToken))
 	case cfg.Auth.UserPassword != nil:
-		git.SetAuth(ctx, cfg.RepoURL, git.MakePasswordAuth(ctx, cfg.Auth.UserPassword.User, cfg.Auth.UserPassword.Password))
+		git.SetAuth(ctx, cfg.PrivateHomeURL, git.MakePasswordAuth(ctx, cfg.Auth.UserPassword.User, cfg.Auth.UserPassword.Password))
 	}
 
+	handle, err := proto.ParseHandle(cfg.PublicHomeURL)
+	must.NoError(ctx, err)
 	return Setup{
-		Repo: git.Address{Repo: cfg.RepoURL, Branch: cfg.RepoBranch},
+		Home: proto.Home{
+			Handle:  handle,
+			Public:  git.Address{Repo: cfg.PublicHomeURL, Branch: ""},  // the app will create sub-branches
+			Private: git.Address{Repo: cfg.PrivateHomeURL, Branch: ""}, // the app will create sub-branches
+		},
 	}
 }
