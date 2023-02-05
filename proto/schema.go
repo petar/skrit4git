@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"math/rand"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -69,7 +71,7 @@ const (
 	MetaExt                = "meta.json"
 )
 
-type LocalID string // YYYYMMDD-HHMMSS-SHA256CONTENT-SHA256HANDLE
+type LocalID string // YYYYMMDD-HHMMSS-SHA256CONTENT-NONCE
 
 func (x LocalID) String() string {
 	return string(x)
@@ -80,12 +82,13 @@ func PostNS(by Handle, t time.Time, content string) (ns.NS, LocalID) {
 	return RootNS.Join(ns.NS{PostDir, localID.String()}), localID
 }
 
-// PostFilebase returns a filename of the form YYYYMMDD-HHMMSS-SHA256CONTENT-SHA256HANDLE
+// PostFilebase returns a filename of the form YYYYMMDD-HHMMSS-SHA256CONTENT-NONCE
 func PostFilebase(by Handle, t time.Time, content string) LocalID {
 	return LocalID(
 		t.UTC().Format(PostFilenameTimeFormat) +
 			"-" + ContentHash(content) +
-			"-" + ContentHash(by.String()))
+			"-" + ContentHash(by.String()) +
+			"-" + ContentHash(Nonce()))
 }
 
 func ContentHash(content string) string {
@@ -94,6 +97,10 @@ func ContentHash(content string) string {
 		panic(err)
 	}
 	return strings.ToLower(hex.EncodeToString(h.Sum(nil)))
+}
+
+func Nonce() string {
+	return strconv.Itoa(int(rand.Int63()))
 }
 
 type PostMeta struct {
