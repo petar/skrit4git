@@ -14,7 +14,7 @@ func Post(
 	content string,
 ) git.Change[LocalID] {
 
-	cloned := git.CloneOrInit(ctx, git.Address(home.Private))
+	cloned := git.CloneOrInit(ctx, home.PrivateSend())
 	chg := PostLocal(ctx, home, cloned, content)
 	cloned.Push(ctx)
 	return chg
@@ -39,10 +39,10 @@ func PostStageOnly(
 	content string,
 ) git.Change[LocalID] {
 
-	postNS, localID := PostNS(time.Now(), content)
+	postNS, localID := PostNS(home.Handle, time.Now(), content)
 	meta := PostMeta{By: home.Handle}
-	git.StringToFileStage(ctx, clone.Tree(), postNS.Ext("raw"), content)
-	form.ToFile(ctx, clone.Tree().Filesystem, postNS.Ext("meta").Path(), meta)
+	git.StringToFileStage(ctx, clone.Tree(), postNS.Ext(RawExt), content)
+	form.ToFile(ctx, clone.Tree().Filesystem, postNS.Ext(MetaExt).Path(), meta)
 	return git.Change[LocalID]{
 		Result: localID,
 		Msg:    "post",
