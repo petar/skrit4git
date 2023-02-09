@@ -12,7 +12,7 @@ func Follow(
 	handle Handle,
 ) git.Change[bool] {
 
-	cloned := git.CloneOne(ctx, home.PrivateReceive())
+	cloned := git.CloneOne(ctx, home.PublicReadWrite())
 	chg := FollowLocal(ctx, home, cloned, handle)
 	cloned.Push(ctx)
 	return chg
@@ -40,10 +40,18 @@ func FollowStageOnly(
 	following := GetFollowingLocal(ctx, clone)
 	already := following[handle]
 	following[handle] = true
-	followingNS := XXX
-	git.ToFileStage(ctx, git.Worktree(ctx, clone.Repo()), followingNS.Path(), following)
+	git.ToFileStage(ctx, git.Worktree(ctx, clone.Repo()), FollowingNS.Path(), following)
 	return git.Change[bool]{
 		Result: !already,
 		Msg:    "follow",
 	}
+}
+
+func GetFollowing(ctx context.Context, home Home) Following {
+	cloned := git.CloneOne(ctx, home.PublicReadWrite())
+	return GetFollowingLocal(ctx, cloned)
+}
+
+func GetFollowingLocal(ctx context.Context, clone git.Cloned) Following {
+	return git.FromFile[Following](ctx, clone.Tree(), FollowingNS.Path())
 }

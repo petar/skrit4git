@@ -20,10 +20,15 @@ type Setup struct {
 }
 
 type Config struct {
-	PublicHomeURL  git.URL    `json:"public_home_url"`  // public URL of home repo
-	PrivateHomeURL git.URL    `json:"private_home_url"` // private URL of home repo
-	Auth           AuthConfig `json:"auth"`
-	VarDir         string     `json:"var_dir"`
+	Handle proto.Handle `json:"handle"`
+	//
+	PublicURL  git.URL `json:"public_url"`  // read/write URL to public repo
+	PrivateURL git.URL `json:"private_url"` // read/write URL to private repo
+	//
+	PublicAuth  AuthConfig `json:"public_auth"`
+	PrivateAuth AuthConfig `json:"private_auth"`
+	//
+	VarDir string `json:"var_dir"`
 }
 
 type AuthConfig struct {
@@ -41,22 +46,27 @@ func (cfg Config) Setup(ctx context.Context) Setup {
 
 	git.SetAuthor(proto.ProtocolName+" agent", "no-reply@"+proto.ProtocolName+".xyz")
 
-	switch {
-	case cfg.Auth.SSHPrivateKeysFile != nil:
-		git.SetAuth(ctx, cfg.PrivateHomeURL, git.MakeSSHFileAuth(ctx, "git", *cfg.Auth.SSHPrivateKeysFile))
-	case cfg.Auth.AccessToken != nil:
-		git.SetAuth(ctx, cfg.PrivateHomeURL, git.MakeTokenAuth(ctx, *cfg.Auth.AccessToken))
-	case cfg.Auth.UserPassword != nil:
-		git.SetAuth(ctx, cfg.PrivateHomeURL, git.MakePasswordAuth(ctx, cfg.Auth.UserPassword.User, cfg.Auth.UserPassword.Password))
-	}
+	setAuth(ctx, cfg.PublicAuth, cfg.PublicURL)
+	setAuth(ctx, cfg.PrivateAuth, cfg.PrivateURL)
 
-	handle, err := proto.ParseHandle(cfg.PublicHomeURL)
+	handle, err := proto.ParseHandle(string(cfg.Handle))
 	must.NoError(ctx, err)
 	return Setup{
 		Home: proto.Home{
-			Handle:  handle,
-			Public:  git.Address{Repo: cfg.PublicHomeURL, Branch: ""},  // the app will create sub-branches
-			Private: git.Address{Repo: cfg.PrivateHomeURL, Branch: ""}, // the app will create sub-branches
+			Handle:     handle,
+			PublicURL:  cfg.PublicURL,
+			PrivateURL: cfg.PrivateURL,
 		},
+	}
+}
+
+func setAuth(ctx context.Context, authConfig AuthConfig, url git.URL) {
+	switch {
+	case authConfig.SSHPrivateKeysFile != nil:
+		git.SetAuth(ctx, url, git.MakeSSHFileAuth(ctx, "git", *authConfig.SSHPrivateKeysFile))
+	case authConfig.AccessToken != nil:
+		git.SetAuth(ctx, url, git.MakeTokenAuth(ctx, *authConfig.AccessToken))
+	case authConfig.UserPassword != nil:
+		git.SetAuth(ctx, url, git.MakePasswordAuth(ctx, authConfig.UserPassword.User, authConfig.UserPassword.Password))
 	}
 }

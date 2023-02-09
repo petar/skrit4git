@@ -4,14 +4,15 @@ import (
 	"context"
 
 	"github.com/gov4git/lib4git/git"
+	"github.com/gov4git/lib4git/ns"
 )
 
 func Sync(
 	ctx context.Context,
 	home Home,
-) git.Change[bool] {
+) git.ChangeNoResult {
 
-	cloned := git.CloneAll(ctx, home.PrivateReceive())
+	cloned := git.CloneAll(ctx, home.PrivateReadWrite())
 	chg := SyncLocal(ctx, home, cloned)
 	cloned.Push(ctx)
 	return chg
@@ -21,15 +22,29 @@ func SyncLocal(
 	ctx context.Context,
 	home Home,
 	clone git.Cloned,
-) git.Change[bool] {
+) git.ChangeNoResult {
 
-	// XXX: read following
+	following := GetFollowingLocal(ctx, clone)
+	addrs := []git.Address{}
+	caches := []git.Branch{}
+	timelineNS := []ns.NS{}
+	for handle, _ := range following {
+		u := handle.URL(ctx)
+		addrs = append(addrs, git.NewAddress(u, PublicBranch))
+		caches = append(caches, git.Branch(CacheBranch(u)))
+		timelineNS = append(timelineNS, TimelineNS)
+	}
 
 	git.EmbedOnBranch(
 		ctx,
 		clone.Repo(),
-		XXX,
+		addrs,
+		caches,
+		PrivateBranch,
+		timelineNS,
+		false,
+		FilterPosts,
 	)
 
-	return XXX
+	return git.ChangeNoResult{Msg: "sync"}
 }
