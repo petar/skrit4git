@@ -10,13 +10,14 @@ import (
 	"github.com/gov4git/lib4git/base"
 	"github.com/gov4git/lib4git/form"
 	"github.com/gov4git/lib4git/git"
+	"github.com/petar/skrit4git/proto"
 	"github.com/spf13/cobra"
 )
 
 var (
 	rootCmd = &cobra.Command{
-		Use:   "twitter4git",
-		Short: "twitter4git is a command-line client for a decentralized Twitter-like app over git",
+		Use:   proto.ProtocolName,
+		Short: proto.ProtocolName + " is a command-line client for a decentralized Twitter-like app over git",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
 		},
@@ -35,7 +36,7 @@ func init() {
 
 	rootCmd.SilenceUsage = true
 	rootCmd.SilenceErrors = true
-	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "config file (default is $HOME/.twitter4git.json)")
+	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "config file (default is $HOME/."+proto.ProtocolName+".json)")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "run in developer mode with verbose logging")
 
 	rootCmd.AddCommand(postCmd)

@@ -5,11 +5,11 @@ import (
 
 	"github.com/gov4git/lib4git/git"
 	"github.com/gov4git/lib4git/must"
-	"github.com/petar/twitter4git/proto"
+	"github.com/petar/skrit4git/proto"
 )
 
 const (
-	AgentName           = "twitter4git"
+	AgentName           = "skrit4git"
 	AgentVarPath        = "." + AgentName
 	AgentConfigFilebase = "." + AgentName + ".json"
 	AgentTempPath       = AgentName

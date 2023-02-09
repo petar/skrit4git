@@ -1,9 +1,9 @@
-module github.com/petar/twitter4git
+module github.com/petar/skrit4git
 
 go 1.19
 
 require (
-	github.com/gov4git/lib4git v0.0.6-0.20230204195109-c31e822a3028
+	github.com/gov4git/lib4git v0.0.6-0.20230208185709-3a406d8b537e
 	github.com/spf13/cobra v1.6.1
 )
 

@@ -11,7 +11,7 @@ func Sync(
 	home Home,
 ) git.Change[bool] {
 
-	cloned := git.CloneOrInit(ctx, home.PrivateReceive())
+	cloned := git.CloneAll(ctx, home.PrivateReceive())
 	chg := SyncLocal(ctx, home, cloned)
 	cloned.Push(ctx)
 	return chg
@@ -23,16 +23,13 @@ func SyncLocal(
 	clone git.Cloned,
 ) git.Change[bool] {
 
-	chg := SyncStageOnly(ctx, home, clone)
-	Commit(ctx, clone.Tree(), chg.Msg)
-	return chg
-}
+	// XXX: read following
 
-func SyncStageOnly(
-	ctx context.Context,
-	home Home,
-	clone git.Cloned,
-) git.Change[bool] {
+	git.EmbedOnBranch(
+		ctx,
+		clone.Repo(),
+		XXX,
+	)
 
-	panic("XXX")
+	return XXX
 }

@@ -6,11 +6,13 @@ import (
 	"encoding/hex"
 	"math/rand"
 	"net/url"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gov4git/lib4git/git"
+	"github.com/gov4git/lib4git/must"
 	"github.com/gov4git/lib4git/ns"
 )
 
@@ -20,15 +22,25 @@ func (h Handle) String() string {
 	return string(h)
 }
 
+func (h Handle) URL(ctx context.Context) git.URL {
+	u, err := url.Parse(string(h))
+	must.NoError(ctx, err)
+	if u.Port() == "" {
+		return git.URL("https://" + filepath.Join(u.Host, u.Path))
+	} else {
+		return git.URL("https://" + filepath.Join(u.Host+":"+u.Port(), u.Path))
+	}
+}
+
 func ParseHandle(repo git.URL) (Handle, error) {
 	u, err := url.Parse(string(repo))
 	if err != nil {
 		return "", err
 	}
 	if u.Port() == "" {
-		return Handle(u.Host + "/" + u.Path), nil
+		return Handle(filepath.Join(u.Host, u.Path)), nil
 	} else {
-		return Handle(u.Host + ":" + u.Port() + "/" + u.Path), nil
+		return Handle(filepath.Join(u.Host+":"+u.Port(), u.Path)), nil
 	}
 }
 
@@ -61,7 +73,7 @@ func Commit(ctx context.Context, t *git.Tree, msg string) {
 }
 
 const (
-	ProtocolName           = "twitter4git" //XXX
+	ProtocolName           = "skrit4git"
 	ProtocolVersion        = "0.0.1"
 	PostDir                = "post"
 	PostFilenameTimeFormat = "20060102-150405"
@@ -106,3 +118,5 @@ func Nonce() string {
 type PostMeta struct {
 	By Handle `json:"by"`
 }
+
+type Following map[Handle]bool
