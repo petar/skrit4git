@@ -36,9 +36,18 @@ func init() {
 
 	rootCmd.SilenceUsage = true
 	rootCmd.SilenceErrors = true
-	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "config file (default is $HOME/."+proto.ProtocolName+".json)")
+	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", defaultConfigPath, "config file")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "run in developer mode with verbose logging")
 }
+
+var defaultConfigPath = func() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		base.Fatalf("looking for home dir (%v)", err)
+	}
+	base.AssertNoErr(err)
+	return filepath.Join(home, AgentVarPath, AgentConfigFilebase)
+}()
 
 func initAfterFlags() {
 	if verbose {
@@ -48,12 +57,7 @@ func initAfterFlags() {
 	}
 
 	if configPath == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			base.Fatalf("looking for home dir (%v)", err)
-		}
-		base.AssertNoErr(err)
-		configPath = filepath.Join(home, AgentConfigFilebase)
+		configPath = defaultConfigPath
 	}
 
 	data, err := ioutil.ReadFile(configPath)

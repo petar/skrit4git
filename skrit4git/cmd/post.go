@@ -44,6 +44,6 @@ var (
 
 func init() {
 	rootCmd.AddCommand(postCmd)
-	followCmd.Flags().StringVarP(&postMsg, "msg", "m", "", "post message")
-	followCmd.Flags().StringVarP(&postFile, "file", "f", "", "file containing post")
+	postCmd.Flags().StringVarP(&postMsg, "msg", "m", "", "post message")
+	postCmd.Flags().StringVarP(&postFile, "file", "f", "", "file containing post")
 }
