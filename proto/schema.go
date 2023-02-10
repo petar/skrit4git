@@ -59,7 +59,7 @@ type Home struct {
 }
 
 func (h Home) Link(postID PostID) string {
-	return filepath.Join(h.Handle.String(), postID.String())
+	return ProtocolName + "://" + filepath.Join(h.Handle.String(), postID.String())
 }
 
 func (h Home) TimelineReadOnly(ctx context.Context) git.Address {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/gov4git/lib4git/form"
 	"github.com/gov4git/lib4git/git"
 )
 
@@ -42,7 +41,7 @@ func PostStageOnly(
 	postNS, localID := PostNS(home.Handle, time.Now(), content)
 	meta := PostMeta{By: home.Handle}
 	git.StringToFileStage(ctx, clone.Tree(), postNS.Ext(RawExt), content)
-	form.ToFile(ctx, clone.Tree().Filesystem, postNS.Ext(MetaExt).Path(), meta)
+	git.ToFileStage(ctx, clone.Tree(), postNS.Ext(MetaExt).Path(), meta)
 	return git.Change[PostID]{
 		Result: localID,
 		Msg:    "post",
