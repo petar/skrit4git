@@ -1,6 +1,10 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/petar/skrit4git/proto"
 	"github.com/spf13/cobra"
 )
 
@@ -10,7 +14,17 @@ var (
 		Short: "Make a post",
 		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			// fmt.Fprint(os.Stdout, form.Pretty(chg.Result))
+			chg := proto.Post(ctx, setup.Home, XXXcontent)
+			fmt.Fprint(os.Stdout, setup.Home.Link(chg.Result))
 		},
 	}
 )
+
+var (
+	postContent string
+)
+
+func init() {
+	rootCmd.AddCommand(postCmd)
+	followCmd.Flags().StringVarP(&postContent, "content", "c", "", "post content")
+}

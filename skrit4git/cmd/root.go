@@ -38,8 +38,6 @@ func init() {
 	rootCmd.SilenceErrors = true
 	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "config file (default is $HOME/."+proto.ProtocolName+".json)")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "run in developer mode with verbose logging")
-
-	rootCmd.AddCommand(postCmd)
 }
 
 func initAfterFlags() {

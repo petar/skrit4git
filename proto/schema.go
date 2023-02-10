@@ -34,6 +34,12 @@ func (h Handle) URL(ctx context.Context) git.URL {
 	}
 }
 
+func MustParseHandle(ctx context.Context, urlOrHandle string) Handle {
+	h, err := ParseHandle(urlOrHandle)
+	must.NoError(ctx, err)
+	return h
+}
+
 func ParseHandle(urlOrHandle string) (Handle, error) {
 	u, err := url.Parse(urlOrHandle)
 	if err != nil {
@@ -50,6 +56,10 @@ type Home struct {
 	Handle     Handle
 	PublicURL  git.URL
 	PrivateURL git.URL
+}
+
+func (h Home) Link(postID PostID) string {
+	return filepath.Join(h.Handle.String(), postID.String())
 }
 
 func (h Home) PublicReadOnly(ctx context.Context) git.Address {
@@ -81,13 +91,13 @@ const (
 	MetaExt                = "meta.json"
 )
 
-type LocalID string // YYYYMMDD-HHMMSS-SHA256CONTENT-NONCE
+type PostID string // YYYYMMDD-HHMMSS-SHA256CONTENT-NONCE
 
-func (x LocalID) String() string {
+func (x PostID) String() string {
 	return string(x)
 }
 
-func PostNS(by Handle, t time.Time, content string) (ns.NS, LocalID) {
+func PostNS(by Handle, t time.Time, content string) (ns.NS, PostID) {
 	localID := PostFilebase(by, t, content)
 	year := fmt.Sprintf("%04d", t.UTC().Year())
 	month := fmt.Sprintf("%02d", t.UTC().Month())
@@ -120,8 +130,8 @@ var (
 )
 
 // PostFilebase returns a filename of the form YYYYMMDD-HHMMSS-SHA256CONTENT-NONCE
-func PostFilebase(by Handle, t time.Time, content string) LocalID {
-	return LocalID(
+func PostFilebase(by Handle, t time.Time, content string) PostID {
+	return PostID(
 		t.UTC().Format(PostFilenameTimeFormat) +
 			"-" + ContentHash(content) +
 			"-" + ContentHash(by.String()) +
