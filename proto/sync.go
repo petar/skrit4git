@@ -28,7 +28,7 @@ func SyncLocal(
 	addrs := []git.Address{}
 	caches := []git.Branch{}
 	timelineNS := []ns.NS{}
-	for handle, _ := range following {
+	for handle := range following {
 		u := handle.URL(ctx)
 		addrs = append(addrs, git.NewAddress(u, TimelineBranch))
 		caches = append(caches, git.Branch(CacheBranch(u)))
