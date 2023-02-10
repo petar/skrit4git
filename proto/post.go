@@ -14,7 +14,7 @@ func Post(
 	content string,
 ) git.Change[PostID] {
 
-	cloned := git.CloneOne(ctx, home.PublicReadWrite())
+	cloned := git.CloneOne(ctx, home.TimelineReadWrite())
 	chg := PostLocal(ctx, home, cloned, content)
 	cloned.Push(ctx)
 	return chg

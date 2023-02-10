@@ -53,9 +53,9 @@ func (cfg Config) Setup(ctx context.Context) Setup {
 	must.NoError(ctx, err)
 	return Setup{
 		Home: proto.Home{
-			Handle:     handle,
-			PublicURL:  cfg.PublicURL,
-			PrivateURL: cfg.PrivateURL,
+			Handle:       handle,
+			TimelineURL:  cfg.PublicURL,
+			FollowingURL: cfg.PrivateURL,
 		},
 	}
 }

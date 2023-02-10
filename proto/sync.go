@@ -12,7 +12,7 @@ func Sync(
 	home Home,
 ) git.ChangeNoResult {
 
-	cloned := git.CloneAll(ctx, home.PrivateReadWrite())
+	cloned := git.CloneAll(ctx, home.FollowingReadWrite())
 	chg := SyncLocal(ctx, home, cloned)
 	cloned.Push(ctx)
 	return chg
@@ -30,7 +30,7 @@ func SyncLocal(
 	timelineNS := []ns.NS{}
 	for handle, _ := range following {
 		u := handle.URL(ctx)
-		addrs = append(addrs, git.NewAddress(u, PublicBranch))
+		addrs = append(addrs, git.NewAddress(u, TimelineBranch))
 		caches = append(caches, git.Branch(CacheBranch(u)))
 		timelineNS = append(timelineNS, TimelineNS)
 	}
@@ -40,7 +40,7 @@ func SyncLocal(
 		clone.Repo(),
 		addrs,
 		caches,
-		PrivateBranch,
+		FollowingBranch,
 		timelineNS,
 		false,
 		FilterPosts,

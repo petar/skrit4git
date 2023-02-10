@@ -53,25 +53,25 @@ func ParseHandle(urlOrHandle string) (Handle, error) {
 }
 
 type Home struct {
-	Handle     Handle
-	PublicURL  git.URL
-	PrivateURL git.URL
+	Handle       Handle
+	TimelineURL  git.URL
+	FollowingURL git.URL
 }
 
 func (h Home) Link(postID PostID) string {
 	return filepath.Join(h.Handle.String(), postID.String())
 }
 
-func (h Home) PublicReadOnly(ctx context.Context) git.Address {
-	return git.NewAddress(h.Handle.URL(ctx), PublicBranch)
+func (h Home) TimelineReadOnly(ctx context.Context) git.Address {
+	return git.NewAddress(h.Handle.URL(ctx), TimelineBranch)
 }
 
-func (h Home) PublicReadWrite() git.Address {
-	return git.NewAddress(h.PublicURL, PublicBranch)
+func (h Home) TimelineReadWrite() git.Address {
+	return git.NewAddress(h.TimelineURL, TimelineBranch)
 }
 
-func (h Home) PrivateReadWrite() git.Address {
-	return git.NewAddress(h.PrivateURL, PrivateBranch)
+func (h Home) FollowingReadWrite() git.Address {
+	return git.NewAddress(h.FollowingURL, FollowingBranch)
 }
 
 var RootNS = ns.NS{}
@@ -85,8 +85,8 @@ const (
 	ProtocolVersion        = "0.0.1"
 	PostDir                = "post"
 	PostFilenameTimeFormat = "20060102-150405"
-	PublicBranch           = "main"
-	PrivateBranch          = "timeline"
+	TimelineBranch         = "timeline"
+	FollowingBranch        = "following"
 	RawExt                 = "raw"
 	MetaExt                = "meta.json"
 )
