@@ -18,18 +18,18 @@ var (
 If the --msg flag is specified, its value is the post.
 If the --file flag is specific, its value is the name of a file containing the post.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			var content string
+			var content []byte
 			switch {
 			case postMsg != "":
-				content = postMsg
+				content = []byte(postMsg)
 			case postFile != "":
 				buf, err := ioutil.ReadFile(postFile)
 				must.NoError(ctx, err)
-				content = string(buf)
+				content = buf
 			default:
 				buf, err := ioutil.ReadAll(os.Stdin)
 				must.NoError(ctx, err)
-				content = string(buf)
+				content = buf
 			}
 			chg := proto.Post(ctx, setup.Home, content)
 			fmt.Fprint(os.Stdout, setup.Home.Link(chg.Result))

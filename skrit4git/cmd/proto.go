@@ -20,7 +20,7 @@ type Setup struct {
 }
 
 type Config struct {
-	Handle proto.Handle `json:"handle"`
+	Handle string `json:"handle"` // e.g. https://github.com/petar/myskrit
 	//
 	TimelineURL  git.URL `json:"timeline_url"`
 	FollowingURL git.URL `json:"following_url"`

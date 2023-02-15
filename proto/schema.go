@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/url"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -18,20 +18,39 @@ import (
 	"github.com/gov4git/lib4git/ns"
 )
 
-type Handle string // user's public handle, which is a host/path pair
+// example handle : https://example.com:8080/git/repo.git
+// example link to post : skrit4git_https://example.com:8080/git/repo.git?post=20230123231112_abcd_fghi
 
-func (h Handle) String() string {
-	return string(h)
+type Handle struct {
+	Scheme string
+	Host   string
+	Path   string
 }
 
-func (h Handle) URL(ctx context.Context) git.URL {
-	u, err := url.Parse(string(h))
-	must.NoError(ctx, err)
-	if u.Port() == "" {
-		return git.URL("https://" + filepath.Join(u.Host, u.Path))
-	} else {
-		return git.URL("https://" + filepath.Join(u.Host+":"+u.Port(), u.Path))
+func (h Handle) String() string {
+	return string(h.URL())
+}
+
+func (h Handle) URL() git.URL {
+	return git.URL(h.Scheme + "://" + h.Host + "/" + h.Path)
+}
+
+func (h Handle) MarshalJSON() ([]byte, error) {
+	s := h.String()
+	return json.Marshal(s)
+}
+
+func (h *Handle) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
 	}
+	g, err := ParseHandle(s)
+	if err != nil {
+		return err
+	}
+	*h = g
+	return nil
 }
 
 func MustParseHandle(ctx context.Context, urlOrHandle string) Handle {
@@ -40,16 +59,107 @@ func MustParseHandle(ctx context.Context, urlOrHandle string) Handle {
 	return h
 }
 
-func ParseHandle(urlOrHandle string) (Handle, error) {
-	u, err := url.Parse(urlOrHandle)
+func ParseHandle(s string) (Handle, error) {
+	u, err := url.Parse(s)
 	if err != nil {
-		return "", err
+		return Handle{}, err
 	}
-	if u.Port() == "" {
-		return Handle(filepath.Join(u.Host, u.Path)), nil
-	} else {
-		return Handle(filepath.Join(u.Host+":"+u.Port(), u.Path)), nil
+	if u.Scheme != "https" {
+		return Handle{}, fmt.Errorf("handle must be an https url")
 	}
+	return Handle{
+		Scheme: u.Scheme,
+		Host:   u.Host,
+		Path:   strings.Trim(u.Path, "/"),
+	}, nil
+}
+
+type Link struct {
+	Handle
+	PostID
+}
+
+func NewLink(h Handle, id PostID) Link {
+	return Link{Handle: h, PostID: id}
+}
+
+func (l Link) URL() *url.URL {
+	return &url.URL{
+		Scheme: ProtocolName + "_" + l.Handle.Scheme,
+		Host:   l.Handle.Host,
+		Path:   l.Handle.Path + "?post=" + l.PostID.String(),
+	}
+}
+
+func (l Link) String() string {
+	return l.URL().String()
+}
+
+func MustParseLink(ctx context.Context, s string) Link {
+	l, err := ParseLink(s)
+	must.NoError(ctx, err)
+	return l
+}
+
+func ParseLink(s string) (Link, error) {
+	// parse link as url
+	u, err := url.Parse(s)
+	if err != nil {
+		return Link{}, err
+	}
+	// parse scheme
+	if !strings.HasPrefix(u.Scheme, ProtocolName+"_") {
+		return Link{}, fmt.Errorf("link scheme not recognized")
+	}
+	// parse handle
+	h := u.Scheme[len(ProtocolName+"_"):] + "://" + u.Host + "/" + strings.TrimLeft(u.Path, "/")
+	handle, err := ParseHandle(h)
+	if err != nil {
+		return Link{}, err
+	}
+	// parse id
+	p := u.Query().Get("post")
+	id, err := ParsePostID(p)
+	if err != nil {
+		return Link{}, err
+	}
+	return Link{
+		Handle: handle,
+		PostID: id,
+	}, nil
+}
+
+type PostID struct {
+	Time        time.Time
+	ContentHash string
+	Nonce       string
+}
+
+func NewPostID(t time.Time, content []byte) PostID {
+	return PostID{Time: t, ContentHash: ContentHash(content), Nonce: ContentHash(Nonce())}
+}
+
+const IDTimeFormat = "20060102150405"
+
+func ParsePostID(s string) (PostID, error) {
+	ps := strings.Split(s, "_")
+	if len(ps) != 3 {
+		return PostID{}, fmt.Errorf("unexpected number of parts in post id")
+	}
+	t, err := time.Parse(IDTimeFormat, ps[0])
+	if err != nil {
+		return PostID{}, err
+	}
+	return PostID{
+		Time:        t,
+		ContentHash: ps[1],
+		Nonce:       ps[2],
+	}, nil
+}
+
+func (x PostID) String() string {
+	t := x.Time.Format(IDTimeFormat)
+	return t + "_" + x.ContentHash + "_" + x.Nonce
 }
 
 type Home struct {
@@ -58,12 +168,12 @@ type Home struct {
 	FollowingURL git.URL
 }
 
-func (h Home) Link(postID PostID) string {
-	return ProtocolName + "://" + filepath.Join(h.Handle.String(), postID.String())
+func (h Home) Link(postID PostID) Link {
+	return NewLink(h.Handle, postID)
 }
 
-func (h Home) TimelineReadOnly(ctx context.Context) git.Address {
-	return git.NewAddress(h.Handle.URL(ctx), TimelineBranch)
+func (h Home) TimelineReadOnly() git.Address {
+	return git.NewAddress(h.Handle.URL(), TimelineBranch)
 }
 
 func (h Home) TimelineReadWrite() git.Address {
@@ -74,35 +184,13 @@ func (h Home) FollowingReadWrite() git.Address {
 	return git.NewAddress(h.FollowingURL, FollowingBranch)
 }
 
-var RootNS = ns.NS{}
-
-func Commit(ctx context.Context, t *git.Tree, msg string) {
-	git.Commit(ctx, t, ProtocolName+": "+msg)
-}
-
-const (
-	ProtocolName           = "skrit4git"
-	ProtocolVersion        = "0.0.1"
-	PostDir                = "post"
-	PostFilenameTimeFormat = "20060102-150405"
-	TimelineBranch         = "timeline"
-	FollowingBranch        = "following"
-	RawExt                 = "raw"
-	MetaExt                = "meta.json"
-)
-
-type PostID string // YYYYMMDD-HHMMSS-SHA256CONTENT-NONCE
-
-func (x PostID) String() string {
-	return string(x)
-}
-
-func PostNS(by Handle, t time.Time, content string) (ns.NS, PostID) {
-	localID := PostFilebase(by, t, content)
-	year := fmt.Sprintf("%04d", t.UTC().Year())
-	month := fmt.Sprintf("%02d", t.UTC().Month())
-	day := fmt.Sprintf("%02d", t.UTC().Day())
-	return ns.NS{PostDir, year, month, day, localID.String()}, localID
+func NewPostNS(by Handle, t time.Time, content []byte) (ns.NS, PostID) {
+	t = t.UTC()
+	id := NewPostID(t, content)
+	year := fmt.Sprintf("%04d", t.Year())
+	month := fmt.Sprintf("%02d", t.Month())
+	day := fmt.Sprintf("%02d", t.Day())
+	return ns.NS{PostDir, year, month, day, id.String()}, id
 }
 
 func FilterPosts(path ns.NS, _ object.TreeEntry) bool {
@@ -129,20 +217,11 @@ var (
 	TimelineNS  = ns.NS{}
 )
 
-// PostFilebase returns a filename of the form YYYYMMDD-HHMMSS-SHA256CONTENT-NONCE
-func PostFilebase(by Handle, t time.Time, content string) PostID {
-	return PostID(
-		t.UTC().Format(PostFilenameTimeFormat) +
-			"-" + ContentHash(content) +
-			"-" + ContentHash(by.String()) +
-			"-" + ContentHash(Nonce()))
-}
-
 func CacheBranch(url git.URL) string {
-	return filepath.Join("cache", ContentHash(string(url)))
+	return strings.Join([]string{"cache", ContentHash([]byte(url))}, "/")
 }
 
-func ContentHash(content string) string {
+func ContentHash(content []byte) string {
 	h := sha256.New()
 	if _, err := h.Write([]byte(content)); err != nil {
 		panic(err)
@@ -150,8 +229,8 @@ func ContentHash(content string) string {
 	return strings.ToLower(hex.EncodeToString(h.Sum(nil)))
 }
 
-func Nonce() string {
-	return strconv.Itoa(int(rand.Int63()))
+func Nonce() []byte {
+	return []byte(strconv.Itoa(int(rand.Int63())))
 }
 
 type PostMeta struct {
@@ -159,3 +238,18 @@ type PostMeta struct {
 }
 
 type Following map[Handle]bool
+
+const (
+	ProtocolName           = "skrit4git"
+	ProtocolVersion        = "0.0.1"
+	PostDir                = "post"
+	PostFilenameTimeFormat = "20060102-150405"
+	TimelineBranch         = "timeline"
+	FollowingBranch        = "following"
+	RawExt                 = "raw"
+	MetaExt                = "meta.json"
+)
+
+func Commit(ctx context.Context, t *git.Tree, msg string) {
+	git.Commit(ctx, t, ProtocolName+": "+msg)
+}
