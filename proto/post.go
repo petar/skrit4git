@@ -38,12 +38,13 @@ func PostStageOnly(
 	content []byte,
 ) git.Change[PostID] {
 
-	postNS, localID := NewPostNS(home.Handle, time.Now(), content)
+	postID := NewPostID(time.Now(), content)
+	postNS := postID.NS()
 	meta := PostMeta{By: home.Handle}
 	git.StringToFileStage(ctx, clone.Tree(), postNS.Ext(RawExt), string(content))
 	git.ToFileStage(ctx, clone.Tree(), postNS.Ext(MetaExt).Path(), meta)
 	return git.Change[PostID]{
-		Result: localID,
+		Result: postID,
 		Msg:    "post",
 	}
 }

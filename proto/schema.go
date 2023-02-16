@@ -136,7 +136,7 @@ type PostID struct {
 }
 
 func NewPostID(t time.Time, content []byte) PostID {
-	return PostID{Time: t, ContentHash: ContentHash(content), Nonce: ContentHash(Nonce())}
+	return PostID{Time: t.UTC(), ContentHash: ContentHash(content), Nonce: ContentHash(Nonce())}
 }
 
 const IDTimeFormat = "20060102150405"
@@ -162,6 +162,13 @@ func (x PostID) String() string {
 	return t + "_" + x.ContentHash + "_" + x.Nonce
 }
 
+func (x PostID) NS() ns.NS {
+	year := fmt.Sprintf("%04d", x.Time.Year())
+	month := fmt.Sprintf("%02d", x.Time.Month())
+	day := fmt.Sprintf("%02d", x.Time.Day())
+	return ns.NS{PostDir, year, month, day, x.String()}
+}
+
 type Home struct {
 	Handle       Handle
 	TimelineURL  git.URL
@@ -182,15 +189,6 @@ func (h Home) TimelineReadWrite() git.Address {
 
 func (h Home) FollowingReadWrite() git.Address {
 	return git.NewAddress(h.FollowingURL, FollowingBranch)
-}
-
-func NewPostNS(by Handle, t time.Time, content []byte) (ns.NS, PostID) {
-	t = t.UTC()
-	id := NewPostID(t, content)
-	year := fmt.Sprintf("%04d", t.Year())
-	month := fmt.Sprintf("%02d", t.Month())
-	day := fmt.Sprintf("%02d", t.Day())
-	return ns.NS{PostDir, year, month, day, id.String()}, id
 }
 
 func FilterPosts(path ns.NS, _ object.TreeEntry) bool {
@@ -231,6 +229,11 @@ func ContentHash(content []byte) string {
 
 func Nonce() []byte {
 	return []byte(strconv.Itoa(int(rand.Int63())))
+}
+
+type PostWithMeta struct {
+	Content []byte
+	Meta    PostMeta
 }
 
 type PostMeta struct {
