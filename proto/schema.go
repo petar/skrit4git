@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -163,10 +164,40 @@ func (x PostID) String() string {
 }
 
 func (x PostID) NS() ns.NS {
-	year := fmt.Sprintf("%04d", x.Time.Year())
-	month := fmt.Sprintf("%02d", x.Time.Month())
-	day := fmt.Sprintf("%02d", x.Time.Day())
-	return ns.NS{PostDir, year, month, day, x.String()}
+	return append(PostDayNS(x.Time), x.String())
+}
+
+func PostDayNS(t time.Time) ns.NS {
+	year := fmt.Sprintf("%04d", t.Year())
+	month := fmt.Sprintf("%02d", t.Month())
+	day := fmt.Sprintf("%02d", t.Day())
+	return ns.NS{PostDir, year, month, day}
+}
+
+type PostIDs []PostID
+
+func (ps PostIDs) Sort() {
+	sort.Sort(ps)
+}
+
+func (ps PostIDs) Len() int {
+	return len(ps)
+}
+
+func (ps PostIDs) Swap(i, j int) {
+	ps[i], ps[j] = ps[j], ps[i]
+}
+
+func (ps PostIDs) Less(i, j int) bool {
+	return ps[i].String() < ps[j].String()
+}
+
+func MapToPostIDs(m map[PostID]bool) PostIDs {
+	r := PostIDs{}
+	for id := range m {
+		r = append(r, id)
+	}
+	return r
 }
 
 type Home struct {
@@ -185,6 +216,10 @@ func (h Home) TimelineReadOnly() git.Address {
 
 func (h Home) TimelineReadWrite() git.Address {
 	return git.NewAddress(h.TimelineURL, TimelineBranch)
+}
+
+func (h Home) FollowingReadOnly() git.Address {
+	return git.NewAddress(h.Handle.URL(), FollowingBranch)
 }
 
 func (h Home) FollowingReadWrite() git.Address {
