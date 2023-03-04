@@ -3,7 +3,8 @@ module github.com/petar/skrit4git
 go 1.19
 
 require (
-	github.com/gov4git/lib4git v0.0.6-0.20230208185709-3a406d8b537e
+	github.com/go-git/go-git/v5 v5.5.2
+	github.com/gov4git/lib4git v0.0.6-0.20230304194736-ecb9aba72b7b
 	github.com/spf13/cobra v1.6.1
 )
 
@@ -15,7 +16,6 @@ require (
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.4.0 // indirect
-	github.com/go-git/go-git/v5 v5.5.2 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
