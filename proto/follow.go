@@ -6,6 +6,8 @@ import (
 	"github.com/gov4git/lib4git/git"
 )
 
+// XXX: put following in public repo
+
 func Follow(
 	ctx context.Context,
 	home Home,
